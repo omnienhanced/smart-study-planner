@@ -5,6 +5,8 @@ import { useAuth } from "../hooks/useAuth"
 import { Navbar } from "../components/Navbar"
 import { Sidebar } from "../components/Sidebar"
 import { Card } from "../components/Card"
+import { getProgress, deleteTask as apiDeleteTask, addTask as apiAddTask, toggleTask as apiToggleTask } from "../services/apiService"
+import toast from "react-hot-toast"
 
 const Progress = () => {
   const { user } = useAuth()
@@ -12,65 +14,66 @@ const Progress = () => {
   const [loading, setLoading] = useState(true)
   const [newTaskSubject, setNewTaskSubject] = useState("")
   const [showAddTask, setShowAddTask] = useState(false)
-  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (user?.uid) fetchProgress()
   }, [user])
 
   const fetchProgress = async () => {
+    setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/progress/${user.uid}`)
-      const data = await res.json()
-      setProgressData(data.progress || [])
+      const res = await getProgress(user.uid)
+      setProgressData(res.data.progress || [])
     } catch (err) {
       console.error(err)
+      toast.error("Failed to fetch progress")
     } finally {
       setLoading(false)
     }
   }
 
-  const deleteTask = async (date, taskId) => {
+  const handleDeleteTask = async (date, taskId) => {
     if (!confirm("Delete this task?")) return
     try {
-      await fetch(`${API_URL}/api/progress/${user.uid}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, taskId }),
-      })
+      await apiDeleteTask(user.uid, { date, taskId })
       fetchProgress()
+      toast.success("Task deleted")
     } catch (err) {
       console.error("Delete failed", err)
+      toast.error("Delete failed")
     }
   }
 
-  const addTask = async () => {
+  const handleAddTask = async () => {
     if (!newTaskSubject.trim()) return
-    await fetch(`${API_URL}/api/progress/${user.uid}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await apiAddTask(user.uid, {
         taskId: `task-${Date.now()}`,
         subject: newTaskSubject,
         completed: false,
-      }),
-    })
-    setNewTaskSubject("")
-    setShowAddTask(false)
-    fetchProgress()
+      })
+      setNewTaskSubject("")
+      setShowAddTask(false)
+      fetchProgress()
+      toast.success("Task added")
+    } catch (err) {
+      console.error("Add task failed", err)
+      toast.error("Add task failed")
+    }
   }
 
-  const toggleTask = async (date, taskId, task) => {
-    await fetch(`${API_URL}/api/progress/${user.uid}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  const handleToggleTask = async (date, taskId, task) => {
+    try {
+      await apiToggleTask(user.uid, {
         taskId,
         subject: task.subject,
         completed: !task.completed,
-      }),
-    })
-    fetchProgress()
+      })
+      fetchProgress()
+    } catch (err) {
+      console.error("Toggle task failed", err)
+      toast.error("Update failed")
+    }
   }
 
   return (
@@ -100,7 +103,7 @@ const Progress = () => {
                 className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-primary"
               />
               <button
-                onClick={addTask}
+                onClick={handleAddTask}
                 className="px-4 py-2 bg-green-600 rounded-lg hover:scale-105 transition-transform font-semibold"
               >
                 Add
@@ -119,7 +122,6 @@ const Progress = () => {
                 >
                   <h3 className="font-semibold text-xl mb-2">{day.date}</h3>
 
-                  {/* Scrollable tasks container with hidden scrollbar */}
                   <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
                     {Object.entries(day.tasks || {}).map(([id, task]) => (
                       <div
@@ -130,7 +132,7 @@ const Progress = () => {
                           <input
                             type="checkbox"
                             checked={task.completed}
-                            onChange={() => toggleTask(day.date, id, task)}
+                            onChange={() => handleToggleTask(day.date, id, task)}
                             className="w-5 h-5 accent-primary cursor-pointer"
                           />
                           <span
@@ -140,7 +142,7 @@ const Progress = () => {
                           </span>
                         </div>
                         <button
-                          onClick={() => deleteTask(day.date, id)}
+                          onClick={() => handleDeleteTask(day.date, id)}
                           className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
                           title="Delete Task"
                         >

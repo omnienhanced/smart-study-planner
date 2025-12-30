@@ -32,6 +32,15 @@ export const logProgress = (userId, data) => api.post(`/api/progress/${userId}`,
 
 export const getProgress = (userId) => api.get(`/api/progress/${userId}`)
 
+// New Progress-specific APIs
+export const addTask = (userId, task) => api.post(`/api/progress/${userId}`, task)
+
+export const toggleTask = (userId, task) =>
+  api.post(`/api/progress/${userId}`, task) // backend handles taskId + completed toggle
+
+export const deleteTask = (userId, task) =>
+  api.delete(`/api/progress/${userId}`, { data: task }) // delete expects { date, taskId } in body
+
 export const getStreak = (userId) => api.get(`/api/progress/${userId}/streak`)
 
 export default api

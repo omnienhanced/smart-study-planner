@@ -5,7 +5,8 @@ import { useAuth } from "../hooks/useAuth"
 import { Navbar } from "../components/Navbar"
 import { Sidebar } from "../components/Sidebar"
 import { Card } from "../components/Card"
-import { getStreak, getProgress } from "../services/apiService"
+import { getStreak, getProgress, toggleTask as apiToggleTask } from "../services/apiService"
+import toast from "react-hot-toast"
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -21,16 +22,17 @@ const Dashboard = () => {
   }, [user])
 
   const fetchDashboardData = async () => {
+    setLoading(true)
     try {
       const [streakRes, progressRes] = await Promise.all([
         getStreak(user.uid),
         getProgress(user.uid),
       ])
-
       setStreak(streakRes.data.streak || 0)
       setProgressData(progressRes.data.progress || [])
     } catch (error) {
-      console.error(error)
+      console.error("Dashboard fetch error:", error)
+      toast.error("Failed to fetch dashboard data")
     } finally {
       setLoading(false)
     }
@@ -43,17 +45,17 @@ const Dashboard = () => {
   const totalTasksCount = Object.keys(todayTasks).length
 
   const toggleTask = async (taskId, task) => {
-    await fetch(`http://localhost:5000/api/progress/${user.uid}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await apiToggleTask(user.uid, {
         taskId,
         subject: task.subject,
         completed: !task.completed,
-      }),
-    })
-
-    fetchDashboardData()
+      })
+      fetchDashboardData()
+    } catch (err) {
+      console.error("Toggle task failed:", err)
+      toast.error("Failed to update task")
+    }
   }
 
   return (
