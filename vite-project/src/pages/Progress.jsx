@@ -12,6 +12,7 @@ const Progress = () => {
   const [loading, setLoading] = useState(true)
   const [newTaskSubject, setNewTaskSubject] = useState("")
   const [showAddTask, setShowAddTask] = useState(false)
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (user?.uid) fetchProgress()
@@ -19,7 +20,7 @@ const Progress = () => {
 
   const fetchProgress = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/progress/${user.uid}`)
+      const res = await fetch(`${API_URL}/api/progress/${user.uid}`)
       const data = await res.json()
       setProgressData(data.progress || [])
     } catch (err) {
@@ -32,7 +33,7 @@ const Progress = () => {
   const deleteTask = async (date, taskId) => {
     if (!confirm("Delete this task?")) return
     try {
-      await fetch(`http://localhost:5000/api/progress/${user.uid}`, {
+      await fetch(`${API_URL}/api/progress/${user.uid}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date, taskId }),
@@ -45,7 +46,7 @@ const Progress = () => {
 
   const addTask = async () => {
     if (!newTaskSubject.trim()) return
-    await fetch(`http://localhost:5000/api/progress/${user.uid}`, {
+    await fetch(`${API_URL}/api/progress/${user.uid}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -60,7 +61,7 @@ const Progress = () => {
   }
 
   const toggleTask = async (date, taskId, task) => {
-    await fetch(`http://localhost:5000/api/progress/${user.uid}`, {
+    await fetch(`${API_URL}/api/progress/${user.uid}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
